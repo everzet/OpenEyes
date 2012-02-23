@@ -57,12 +57,13 @@ class Address extends BaseActiveRecord
 		// NOTE: you should only define rules for those attributes that
 		// will receive user inputs.
 		return array(
-		array('address1, address2, city, county', 'length', 'max'=>255),
-		array('postcode', 'length', 'max'=>10),
-		array('email', 'length', 'max'=>255),
-		// The following rule is used by search().
-		// Please remove those attributes that should not be searched.
-		array('id, address1, address2, city, postcode, county, email', 'safe', 'on'=>'search'),
+			array('address1, address2, city, county', 'length', 'max'=>255),
+			array('postcode', 'length', 'max'=>10),
+			array('email', 'length', 'max'=>255),
+			array('address1, city, postcode, county, country_id, email', 'required'),
+			// The following rule is used by search().
+			// Please remove those attributes that should not be searched.
+			array('id, address1, address2, city, postcode, county, email', 'safe', 'on'=>'search'),
 		);
 	}
 

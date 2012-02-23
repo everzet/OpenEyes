@@ -120,4 +120,18 @@ class BaseActiveRecord extends CActiveRecord
 			return Helper::convertMySQL2HTML($value, $empty_string);
 		}
 	}
+
+	public function getRequiredFields() {
+		$fields = array();
+
+		foreach ($this->rules() as $rule) {
+			if ($rule[1] == 'required') {
+				foreach (explode(',',$rule[0]) as $field) {
+					$fields[] = trim($field);
+				}
+			}
+		}
+
+		return $fields;
+	}
 }
