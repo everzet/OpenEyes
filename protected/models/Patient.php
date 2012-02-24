@@ -25,7 +25,6 @@ http://www.openeyes.org.uk   info@openeyes.org.uk
  * @property string  $gender
  * @property string  $hos_num
  * @property string  $nhs_num
- * @property integer $address_id
  * @property string  $primary_phone
  * @property string  $gp_id
  * @property string  $created_date
@@ -35,12 +34,14 @@ http://www.openeyes.org.uk   info@openeyes.org.uk
  * 
  * The followings are the available model relations:
  * @property Episode[] $episodes
- * @property Address $address
+ * @property Address[] $addresses
+ * @property Address $address Primary address
+ * @property HomeAddress $homeAddress Home address
+ * @property CorrespondAddress $correspondAddress Correspondence address
  * @property Contact[] $contacts
  * @property Gp $gp
  */
-class Patient extends BaseActiveRecord
-{
+class Patient extends BaseActiveRecord {
 	
 	// Set to false to supress cache refresh afterFind
 	public $use_pas = true;
@@ -49,49 +50,53 @@ class Patient extends BaseActiveRecord
 	 * Returns the static model of the specified AR class.
 	 * @return Patient the static model class
 	 */
-	public static function model($className=__CLASS__)
-	{
+	public static function model($className=__CLASS__) {
 		return parent::model($className);
 	}
 
 	/**
 	 * @return string the associated database table name
 	 */
-	public function tableName()
-	{
+	public function tableName() {
 		return 'patient';
 	}
 
 	/**
 	 * @return array validation rules for model attributes.
 	 */
-	public function rules()
-	{
-		// NOTE: you should only define rules for those attributes that
-		// will receive user inputs.
+	public function rules() {
 		return array(
 			array('first_name, last_name', 'required'),
-			array('pas_key', 'length', 'max'=>10),
-			array('title', 'length', 'max'=>8),
-			array('first_name, last_name, hos_num, nhs_num, primary_phone', 'length', 'max'=>40),
-			array('gender', 'length', 'max'=>1),
-			array('dob, primary_phone, address_id', 'safe'),
-			// The following rule is used by search().
-			// Please remove those attributes that should not be searched.
-			array('first_name, last_name, dob, hos_num, nhs_num, primary_phone', 'safe', 'on'=>'search'),
+			array('pas_key', 'length', 'max' => 10),
+			array('title', 'length', 'max' => 8),
+			array('first_name, last_name, hos_num, nhs_num, primary_phone', 'length', 'max' => 40),
+			array('gender', 'length', 'max' => 1),
+			array('dob, primary_phone', 'safe'),
+			array('first_name, last_name, dob, hos_num, nhs_num, primary_phone', 'safe', 'on' => 'search'),
 		);
 	}
 
 	/**
 	 * @return array relational rules.
 	 */
-	public function relations()
-	{
-		// NOTE: you may need to adjust the relation name and the related
-		// class name for the relations automatically generated below.
+	public function relations() {
 		return array(
 			'episodes' => array(self::HAS_MANY, 'Episode', 'patient_id'),
-			'address' => array(self::BELONGS_TO, 'Address', 'address_id'),
+			'addresses' => array(self::HAS_MANY, 'Address', 'parent_id'),
+			// Prefer H records for primary address, but fall back to others
+			'address' => array(self::HAS_ONE, 'Address', 'parent_id',
+				'order' => "FIELD(type,'H') DESC, date_start DESC"
+			),
+			// Prefer H records for home address, but fall back to others
+			'homeAddress' => array(self::HAS_ONE, 'Address', 'parent_id',
+				'order' => "FIELD(type,'H') DESC, date_start DESC"
+			),
+			// Prefer C records for correspond address, but fall back to others
+			// FIXME: PAS currently stating that only Home addresses are valid
+			'correspondAddress' => array(self::HAS_ONE, 'Address', 'parent_id',
+				//'order' => "FIELD(type,'C') DESC, date_start DESC"
+				'order' => "FIELD(type,'H') DESC, date_start DESC"
+			),
 			'contacts' => array(self::MANY_MANY, 'Contact', 'patient_contact_assignment(patient_id, contact_id)'),
 			'gp' => array(self::BELONGS_TO, 'Gp', 'gp_id')
 		);
@@ -261,19 +266,6 @@ class Patient extends BaseActiveRecord
 		return date("Y-m-d",strtotime("$startDate + ".rand(0,round((strtotime($endDate) - strtotime($startDate)) / (60 * 60 * 24)))." days"));
 	}
 
-	public function loadGP() {
-		if ($this->gp_id === NULL) {
-			if (Yii::app()->params['use_pas']) {
-				$service = new GpService;
-				$service->GetPatientGp($this->id);
-			} else {
-				return false;
-			}
-		} else {
-			return Gp::model()->noPas()->findByPk($this->gp_id);
-		}
-	}
-	
 	/**
 	 * Supress PAS call after find
 	 */

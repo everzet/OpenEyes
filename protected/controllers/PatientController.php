@@ -146,9 +146,8 @@ class PatientController extends BaseController
 		if (!empty($_POST)) {
 
 			if ((!@$_POST['Patient']['hos_num'] || preg_match('/[^\d]/', $_POST['Patient']['hos_num'])) && (!@$_POST['Patient']['first_name'] || !@$_POST['Patient']['last_name'])) {
-				header('Location: /patient/results/error');
 				setcookie('patient-search-minimum-criteria','1',0,'/');
-				exit;
+				$this->redirect('/patient/results/error');
 			}
 
 			if (@$_POST['Patient']['hos_num']) {
@@ -185,14 +184,12 @@ class PatientController extends BaseController
 			$get_dob_month = (@$_POST['dob_month'] ? $_POST['dob_month'] : '0');
 			$get_dob_year = (@$_POST['dob_year'] ? $_POST['dob_year'] : '0');
 
-			header("Location: /patient/results/$get_first_name/$get_last_name/$get_nhs_num/$get_gender/0/0/1");
 			setcookie('patient-search-minimum-criteria','1',0,'/');
-			exit;
+			$this->redirect("/patient/results/$get_first_name/$get_last_name/$get_nhs_num/$get_gender/0/0/1");
 		}
 
 		if (@$_GET['hos_num'] == '0' && (@$_GET['first_name'] == '0' || @$_GET['last_name'] == '0')) {
-			header('Location: /patient/results/error');
-			exit;
+			$this->redirect('/patient/results/error');
 		}
 
 		$this->patientSearch();
@@ -264,19 +261,17 @@ class PatientController extends BaseController
 
 		if ($nr == 0) {
 			if (Yii::app()->params['pas_down']) {
-				header('Location: /patient/no-results-pas');
+				$this->redirect('/patient/no-results-pas');
 			} else if (isset($service) && @$service->no_address) {
-				header('Location: /patient/no-results-address');
+				$this->redirect('/patient/no-results-address');
 			} else {
-				header('Location: /patient/no-results');
+				$this->redirect('/patient/no-results');
 			}
-			exit;
 		}
 
 		if ($nr == 1) {
 			foreach ($dataProvider->getData() as $item) {
-				header('Location: /patient/view/'.$item->id);
-				exit;
+				$this->redirect('/patient/view/'.$item->id);
 			}
 		}
 

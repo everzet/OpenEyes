@@ -53,7 +53,7 @@ class PatientService
 	 *
 	 * @param array $data
 	 */
-	public function search($data, $num_results = 20, $page=1) {
+	public function search($data, $num_results = 20, $page = 1) {
 		// oracle apparently doesn't do case-insensitivity, so everything is uppercase
 		foreach ($data as $key => &$value) {
 			$value = strtoupper($value);
@@ -69,7 +69,7 @@ class PatientService
 
 		// Date of birth
 		if (!empty($data['dob'])) {
-			$whereSql .= " AND TO_CHAR(DATE_OF_BIRTH, 'YYYY-MM-DD') = '" . addslashes($data['dob']) . "'";
+			$whereSql .= " AND DATE_OF_BIRTH = '" . addslashes($data['dob']) . "'";
 		}
 
 		// Gender
@@ -87,8 +87,15 @@ class PatientService
 		if (!empty($data['nhs_num'])) {
 			$whereSql .= " AND p.RM_PATIENT_NO IN (SELECT RM_PATIENT_NO FROM SILVER.NUMBER_IDS WHERE NUM_ID_TYPE = 'NHS' AND NUMBER_ID = '" . addslashes($data['nhs_num']) . "')";
 		}
-
-		$sql = "SELECT COUNT(*) as count FROM SILVER.PATIENTS p, SILVER.SURNAME_IDS s, SILVER.NUMBER_IDS n WHERE s.rm_patient_no = p.rm_patient_no AND s.surname_type = 'NO' AND ( n.rm_patient_no = p.rm_patient_no $whereSql) AND LENGTH(TRIM(TRANSLATE(n.num_id_type, '0123456789', ' '))) is null";
+		
+		$sql = "
+			SELECT COUNT(*) as count
+			FROM SILVER.PATIENTS p
+			JOIN SILVER.SURNAME_IDS s ON s.rm_patient_no = p.rm_patient_no
+			JOIN SILVER.NUMBER_IDS n ON n.rm_patient_no = p.rm_patient_no
+			WHERE s.surname_type = 'NO' $whereSql
+			AND LENGTH(TRIM(TRANSLATE(n.num_id_type, '0123456789', ' '))) is null
+		";
 		$connection = Yii::app()->db_pas;
 		$command = $connection->createCommand($sql);
 		foreach ($command->queryAll() as $results) $this->num_results = $results['COUNT'];
@@ -131,81 +138,51 @@ class PatientService
 		$sort_rev = ($data['sort_dir'] == 0 ? 'DESC' : 'ASC');
 
 		$sql = "
-				SELECT
-					* from
-					( select a.*, rownum rnum from (
-						SELECT
-							p.rm_patient_no,
-							p.sex,
-							n.num_id_type,
-							n.number_id,
-							TO_CHAR(p.DATE_OF_BIRTH, 'YYYY-MM-DD') AS DATE_OF_BIRTH,
-							s.SURNAME_ID,
-							s.NAME1,
-							s.NAME2,
-							s.NAME3,
-							s.TITLE,
-							s.SURNAME_ID_SOUNDEX,
-							s.NAME1_SOUNDEX,
-							s.NAME2_SOUNDEX,
-							s.HDDR_GROUP,
-							n2.NUMBER_ID as NHS_NUMBER
-						FROM
-							SILVER.PATIENTS p
-						JOIN
-							SILVER.NUMBER_IDS n
-						ON
-							n.rm_patient_no = p.rm_patient_no
-						JOIN
-							SILVER.SURNAME_IDS s
-						ON
-							s.rm_patient_no = p.rm_patient_no
-						LEFT OUTER JOIN
-							SILVER.NUMBER_IDS n2
-						ON
-							n2.rm_patient_no = p.rm_patient_no and n2.NUM_ID_TYPE = 'NHS'
-						WHERE
-							( s.surname_type = 'NO' $whereSql )
-						AND
-							LENGTH(TRIM(TRANSLATE(n.num_id_type, '0123456789', ' '))) is null
-						ORDER BY
-							$sort_by $sort_dir
-					) a
-					where rownum <= $limit
-					order by rownum $sort_rev
-					)
-					where rnum >= $offset
-					order by rnum $sort_rev
+			SELECT * from
+				( select a.*, rownum rnum from (
+					SELECT p.RM_PATIENT_NO
+					FROM SILVER.PATIENTS p
+					JOIN SILVER.NUMBER_IDS n ON n.rm_patient_no = p.rm_patient_no
+					JOIN SILVER.SURNAME_IDS s ON s.rm_patient_no = p.rm_patient_no
+					LEFT OUTER JOIN SILVER.NUMBER_IDS n2 ON n2.rm_patient_no = p.rm_patient_no
+						AND n2.NUM_ID_TYPE = 'NHS'
+					WHERE ( s.surname_type = 'NO' $whereSql )
+					AND LENGTH(TRIM(TRANSLATE(n.num_id_type, '0123456789', ' '))) is null
+					ORDER BY $sort_by $sort_dir
+				) a
+				where rownum <= $limit
+				order by rownum $sort_rev
+				)
+			where rnum >= $offset
+			order by rnum $sort_rev
 		";
 
 		$connection = Yii::app()->db_pas;
 		$command = $connection->createCommand($sql);
 		$results = $command->queryAll();
 
-		$patients = array();
 		$ids = array();
 		$patients_with_no_address = 0;
 
 		foreach ($results as $result) {
-			$pasPatient = PAS_Patient::Model();
-			$pasPatient->RM_PATIENT_NO = $result['RM_PATIENT_NO'];
-			$pasPatient->SEX = $result['SEX'];
-
-			$surname = PAS_PatientSurname::model();
-			foreach (array('RM_PATIENT_NO','SURNAME_ID','NAME1','NAME2','TITLE','SURNAME_ID_SOUNDEX','NAME1_SOUNDEX','NAME2_SOUNDEX','HDDR_GROUP','NAME3') as $field) {
-				$surname->{$field} = $result[$field];
+			
+			// See if the patient is in openeyes, if not then fetch from PAS
+			$this->patient = Patient::model()->findByPk($result['RM_PATIENT_NO']);
+			if(!$this->patient) {
+				$this->patient = new Patient();
+				$this->patient->id = $result['RM_PATIENT_NO'];
+				$this->loadFromPas();
 			}
-
-			if ($address = $pasPatient->address) {
-				if ($patient = $this->updatePatient($pasPatient, $address, $result, $surname)) {
-					$patients[] = $patient;
-					$ids[] = $patient->hos_num;
-				}
+			
+			// Check that patient has an address
+			if($this->patient->address) {
+				$ids[] = $this->patient->id;
 			} else {
 				$patients_with_no_address++;
 			}
+			
 		}
-
+		
 		switch ($_GET['sort_by']) {
 			case 0:
 				// hos_num
@@ -239,111 +216,15 @@ class PatientService
 
 		// collect all the patients we just created
 		$criteria = new CDbCriteria;
-		$criteria->addInCondition('hos_num', $ids);
+		$criteria->addInCondition('id', $ids);
 		$criteria->order = "$sort_by $sort_dir";
 
-		if ($patients_with_no_address >0) {
+		if ($patients_with_no_address > 0) {
 			$this->num_results -= $patients_with_no_address;
 			$this->no_address = true;
 		}
 
 		return $criteria;
-	}
-
-	/**
-	 * Format a number from PAS into a meaningful digit
-	 *
-	 * @param string $string
-	 * @return string
-	 * @deprecated
-	 */
-	public function formatHospitalNumberFromPas($string)
-	{
-		if (is_numeric($string) && $string < 1000000) {
-			$number = str_pad($string, 7, '0', STR_PAD_LEFT);
-		} else {
-			$number = $string;
-		}
-
-		return $number;
-	}
-
-	/**
-	 * Format a number for PAS with cropping
-	 *
-	 * @param string $string
-	 * @return string
-	 * @deprecated
-	 */
-	public function formatHospitalNumberForPas($string)
-	{
-		if (!is_numeric($string)) {
-			$number = preg_replace("/[a-zA-Z]/", "", $string);
-		} else {
-			$number = sprintf("%'06u", $string % 1000000);
-		}
-
-		return $number;
-	}
-
-	/**
-	 * Find an existing patient or create a new one
-	 * Update its info with the latest info from PAS
-	 *
-	 * @param array $data		Data from PAS to store in the patient model
-	 *
-	 * @return Patient
-	 */
-	protected function updatePatient($patientData, $addressData, $result, $surname) {
-		$hosNum = $result['NUM_ID_TYPE'] . $result['NUMBER_ID'];
-
-		// Supress auto PAS update
-		$patient = Patient::model()->noPas()->findByPk($patientData->RM_PATIENT_NO);
-
-		if (!$patient) {
-			Yii::log('Patient not found in OpenEyes, creating new record: '.$patientData->RM_PATIENT_NO);
-			$patient = new Patient;
-			$patient->id = $patientData->RM_PATIENT_NO;
-			$address = new Address;
-		} else {
-			if (!($address = $patient->address)) {
-				$address = new Address;
-			}
-		}
-
-		// At this point we should check that the patient hasn't been created in parallel by another thread
-		// (because PAS queries are occassionally extremely slow
-		if (!Patient::Model()->findByPk($patientData->RM_PATIENT_NO)) {
-
-			$patient->pas_key = $hosNum;
-			$patient->title = $surname->TITLE;
-			$patient->first_name = $surname->NAME1;
-			$patient->last_name = $surname->SURNAME_ID;
-			$patient->dob = $result['DATE_OF_BIRTH'];
-			$patient->gender = $patientData->SEX;
-			$patient->nhs_num = $result['NHS_NUMBER'];
-
-			if ($addressData->TEL_NO != 'NONE') {
-				$patient->primary_phone = $addressData->TEL_NO;
-			}
-
-			$address = $this->updateAddress($address, $addressData);
-			if (!$address->save()) {
-				throw new SystemException('Unable to update patient address: '.print_r($address->getErrors(),true));
-			}
-
-			$patient->address_id = $address->id;
-			$patient->hos_num = $hosNum;
-
-			if (!$patient->save()) {
-				throw new SystemException('Unable to update patient: '.print_r($patient->getErrors(),true));
-			}
-		}
-
-		// Pull in the GP associate from PAS if we don't already have it
-		$patient->loadGP();
-
-		return $patient;
 	}
 
 	/**
@@ -354,6 +235,12 @@ class PatientService
 	 * @return Address
 	 */
 	protected function updateAddress($address, $data) {
+
+		$address1 = '';
+		$address2 = '';
+		$city = '';
+		$county = '';
+		$postcode = '';
 
 		$propertyName = empty($data->PROPERTY_NAME) ? '' : trim($data->PROPERTY_NAME);
 		$propertyNumber = empty($data->PROPERTY_NO) ? '' : trim($data->PROPERTY_NO);
@@ -478,23 +365,16 @@ class PatientService
 		}
 		
 		// Store data
+		$address->address1 = $address1;
+		$address->address2 = $address2;
+		$address->city = $town;
+		$address->county = $county;
 		$unitedKingdom = Country::model()->findByAttributes(array('name' => 'United Kingdom'));
-		if (isset($address1)) {
-			$address->address1 = $address1;
-		}
-		if (isset($address2)) {
-			$address->address2 = $address2;
-		}
-		if (isset($town)) {
-			$address->city = $town;
-		}
-		if (isset($county)) {
-			$address->county = $county;
-		}
 		$address->country_id = $unitedKingdom->id;
-		if (isset($postcode)) {
-			$address->postcode = $postcode;
-		}
+		$address->postcode = $postcode;
+		$address->type = $data->ADDR_TYPE;
+		$address->date_start = $data->DATE_START;
+		$address->date_end = $data->DATE_END;
 
 		return $address;
 	}
@@ -506,49 +386,77 @@ class PatientService
 		if(!$this->patient->id) {
 			throw new CException('Patient not linked to PAS patient (id undefined)');
 		}
-		Yii::log('Pulling Patient data from PAS:'.$this->patient->id, 'trace');
+		//Yii::log('Pulling Patient data from PAS:'.$this->patient->id, 'trace');
 		if($pas_patient = PAS_Patient::model()->findByPk($this->patient->id)) {
-			if($hos_num = $pas_patient->hos_number) {
-				$this->patient->pas_key = $hos_num->NUM_ID_TYPE . $hos_num->NUMBER_ID;
-				$this->patient->hos_num = $hos_num->NUM_ID_TYPE . $hos_num->NUMBER_ID;
-			}
 			$this->patient->title = $pas_patient->name->TITLE;
 			$this->patient->first_name = $pas_patient->name->NAME1;
 			$this->patient->last_name = $pas_patient->name->SURNAME_ID;
 			$this->patient->gender = $pas_patient->SEX;
 			$this->patient->dob = $pas_patient->DATE_OF_BIRTH;
+			if($hos_num = $pas_patient->hos_number) {
+				$hos_num = $hos_num->NUM_ID_TYPE . $hos_num->NUMBER_ID;
+				$this->patient->pas_key = $hos_num;
+				$this->patient->hos_num = $hos_num;
+			}
 			if($nhs_number = $pas_patient->nhs_number) {
 				$this->patient->nhs_num = $nhs_number->NUMBER_ID;
 			}
 				
-			// Address
-			if($pas_patient->address) {
+			// Addresses
+			if($pas_patient->addresses) {
+				
+				// Get primary phone from patient's main address
 				$this->patient->primary_phone = $pas_patient->address->TEL_NO;
-				if(!$address = $this->patient->address) {
-					$address = new Address();
+				
+				// Matching addresses for update is tricky cos we don't have a primary key on the pas address table,
+				// so we need to keep track of patient address ids as we go
+				$matched_address_ids = array();
+				$patient_addresses = $this->patient->addresses;
+				foreach($pas_patient->addresses as $pas_address) {
+					
+					// Match an address
+					//Yii::log("looking for patient address:".$pas_address->POSTCODE, 'trace');
+					$address = Address::model()->find(array(
+						'condition' => "parent_id = :patient_id AND parent_class = 'Patient' AND REPLACE(postcode,' ','') = :postcode",
+						'params' => array(':patient_id' => $this->patient->id, ':postcode' => str_replace(' ','',$pas_address->POSTCODE)),
+					));
+					
+					// Check if we have an address (that we haven't already matched)
+					if(!$address || in_array($address->id, $matched_address_ids)) {
+						Yii::log("patient address not found, creating", 'trace');
+						$address = new Address;
+						$address->parent_id = $this->patient->id;
+						$address->parent_class = 'Patient';
+					}
+					
+					$this->updateAddress($address, $pas_address);
+					$address->save();
+					$matched_address_ids[] = $address->id;
 				}
-				$this->updateAddress($address, $pas_patient->address);
+				
+				// Remove any orphaned addresses (expired?)
+				$matched_string = implode(',',$matched_address_ids);
+				$orphaned_addresses = Address::model()->deleteAll(array(
+					'condition' => "parent_id = :patient_id AND parent_class = 'Patient' AND id NOT IN($matched_string)",
+					'params' => array(':patient_id' => $this->patient->id),
+				));
+				//Yii::log("$orphaned_addresses orphaned patient addresses deleted", 'trace');
+								
 			}
 				
-			// Get latest GP from PAS
-			$pas_patient_gp = PAS_PatientGps::model()->find(array(
-				'condition' => 'RM_PATIENT_NO = :patient_id',
-				'order' => 'DATE_FROM DESC',
-				'params' => array(
-					':patient_id' => $this->patient->id,
-			),
-			));
+			// Get latest GP mapping from PAS
+			$pas_patient_gp = $pas_patient->PatientGp; 
 			if($pas_patient_gp) {
 				// Check that GP is not on our block list
 				if(GpService::is_bad_gp($pas_patient_gp->GP_ID)) {
-					Yii::log('GP on blocklist, ignoring: '.$pas_patient_gp->GP_ID, 'trace');
+					//Yii::log('GP on blocklist, ignoring: '.$pas_patient_gp->GP_ID, 'trace');
 					$this->patient->gp_id = null;
 				} else {
 					// Check that the GP is in openeyes
 					$gp = Gp::model()->findByAttributes(array('obj_prof' => $pas_patient_gp->GP_ID));
 					if(!$gp) {
 						// GP not in openeyes, pulling from PAS
-						Yii::log('GP not in openeyes: '.$pas_patient_gp->GP_ID, 'trace');
+						//Yii::log('GP not in openeyes: '.$pas_patient_gp->GP_ID, 'trace');
 						$gp = new Gp();
 						$gp->obj_prof = $pas_patient_gp->GP_ID;
 						$gp_service = new GpService($gp);
@@ -558,25 +466,21 @@ class PatientService
 	
 					// Update/set patient's GP
 					if(!$this->patient->gp || $this->patient->gp_id != $gp->id) {
-						Yii::log('Patient\'s GP changed:'.$gp->obj_prof, 'trace');
+						//Yii::log('Patient\'s GP changed:'.$gp->obj_prof, 'trace');
 						$this->patient->gp_id = $gp->id;
 					} else {
-						Yii::log('Patient\'s GP has not changed', 'trace');
+						//Yii::log('Patient\'s GP has not changed', 'trace');
 					}
 				}
 			} else {
-				Yii::log('Patient has no GP in PAS', 'info');
+				//Yii::log('Patient has no GP in PAS', 'info');
 			}
 				
 			// Save
-			$address->save();
-			if(!$this->patient->address) {
-				$this->patient->address_id = $address->id;
-			}
 			$this->patient->save();
 				
 		} else {
-			Yii::log('Patient not found in PAS: '.$this->patient->id, 'info');
+			//Yii::log('Patient not found in PAS: '.$this->patient->id, 'info');
 		}
 	}
 
