@@ -67,15 +67,16 @@ class User extends BaseActiveRecord
 				$commonRules,
 				array(
 					array('username', 'match', 'pattern' => '/^[\w|_]+$/', 'message' => 'Only letters, numbers and underscores are allowed for usernames.'),
-					array('username, password, password_repeat, email, first_name, last_name, active, global_firm_rights', 'required'),
+					array('username, password, email, first_name, last_name, active, global_firm_rights', 'required'),
+					array('username, password, password_repeat, email, first_name, last_name, active, global_firm_rights', 'required', 'on' => 'admin'),
 					array('username, password, first_name, last_name', 'length', 'max' => 40),
 					array('password', 'length', 'min' => 6, 'message' => 'Passwords must be at least 6 characters long.'),
 					array('email', 'length', 'max' => 80),
 					array('email', 'email'),
 					array('salt', 'length', 'max' => 10),
 					// Added for password comparison functionality
-					array('password', 'compare'),
-					array('password_repeat', 'safe'),
+					array('password', 'compare', 'on' => 'admin'),
+					array('password_repeat', 'safe', 'on' => 'admin'),
 				)
 			);
 		} else if (Yii::app()->params['auth_source'] == 'LDAP') {

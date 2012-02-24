@@ -130,8 +130,11 @@ class BaseActiveRecord extends CActiveRecord
 
 		foreach ($this->rules() as $rule) {
 			if ($rule[1] == 'required') {
-				foreach (explode(',',$rule[0]) as $field) {
-					$fields[] = trim($field);
+				// We want the required fields for the default scenario so we want there to be no 'on' clause in $rule
+				if (!isset($rule['on']) || $rule['on'] == '') {
+					foreach (explode(',',$rule[0]) as $field) {
+						$fields[] = trim($field);
+					}
 				}
 			}
 		}

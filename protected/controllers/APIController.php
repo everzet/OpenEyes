@@ -48,19 +48,29 @@ class APIController extends BaseController
 	}
 
 	public function beforeAction() {
-		if (!isset($_REQUEST['username'])) {
-			$this->error('Missing username');
+		if (!isset($_REQUEST['apiuser'])) {
+			$this->error('Missing API user');
 		}
 		if (!isset($_REQUEST['apikey'])) {
 			$this->error('Missing API key');
 		}
-		if (!preg_match('/^[0-9a-f]{40}$/',$_REQUEST['apikey']) || !User::model()->find('username = :username and api_key = :api_key',array(':username'=>$_REQUEST['username'],':api_key'=>$_REQUEST['apikey']))) {
+		if (!preg_match('/^[0-9a-f]{40}$/',$_REQUEST['apikey']) || !User::model()->find('username = :username and api_key = :api_key',array(':username'=>$_REQUEST['apiuser'],':api_key'=>$_REQUEST['apikey']))) {
 			$this->error('Authentication failed');
 		}
 	}
 
 	public function missingAction($model) {
 		$this->beforeAction();
+
+		/* Yii's routing puts things into $_GET that shouldn't be there. this reverts them. */
+		if ($_SERVER['QUERY_STRING']) {
+			$_GET = array();
+			foreach (explode('&',$_SERVER['QUERY_STRING']) as $item) {
+				$key = preg_replace('/=.*$/','',$item);
+				$value = preg_replace('/^.*=/','',$item);
+				$_GET[$key] = $value;
+			}
+		}
 
 		if (in_array($model,$this->models)) {
 			$args = $this->getMethodArgs($model);
@@ -137,7 +147,23 @@ class APIController extends BaseController
 			case 'list':
 				$objects = array();
 
-				foreach ($model::model()->findAll('',array('order' => 'id asc')) as $obj) {
+				$where = '';
+				$wherep = array();
+				foreach ($_GET as $key => $value) {
+					if (!in_array($key,array('apiuser','apikey'))) {
+						if ($model::model()->hasAttribute($key)) {
+							if ($where) {
+								$where .= ' and ';
+							}
+							$where .= "$key = ?";
+							$wherep[] = str_replace('%20',' ',$value);
+						} else {
+							$this->error("Unknown parameter for $model: $key");
+						}
+					}
+				}
+
+				foreach ($model::model()->findAll($where,$wherep,$params) as $obj) {
 					$objects[] = $this->to_array($obj);
 				}
 

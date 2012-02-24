@@ -53,7 +53,7 @@ class AdminUserController extends Controller
 	 */
 	public function actionCreate()
 	{
-		$model = new User;
+		$model = new User('admin');
 
 		// Uncomment the following line if AJAX validation is needed
 		// $this->performAjaxValidation($model);
@@ -88,6 +88,7 @@ class AdminUserController extends Controller
 	{
 // @todo - should 'User Rights' be on the same page as 'Create User' and 'Update User'
 		$model=$this->loadModel($id);
+		$model->setScenario('admin');
 
 		// Uncomment the following line if AJAX validation is needed
 		// $this->performAjaxValidation($model);
