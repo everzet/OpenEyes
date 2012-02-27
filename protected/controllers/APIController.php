@@ -19,7 +19,7 @@ class APIController extends BaseController
 	 * using two-column layout. See 'protected/views/layouts/column2.php'.
 	 */
  
- 	private $errors = array();
+	private $errors = array();
 	private $models = array(
 		'user',
 		'site',
@@ -127,15 +127,57 @@ class APIController extends BaseController
 	}
 
 	public function api($model, $args) {
+		if (!empty($args)) {
+			$object_id = $args[0];
+		}
+
+		$model = ucfirst($model);
+
+		switch (@$_SERVER['REQUEST_METHOD']) {
+			case 'GET':
+				if (isset($object_id)) {
+					if ($obj = $model::model()->findByPk($object_id)) {
+						return $this->success($this->to_array($obj));
+					} else {
+						return $this->error($model.' not found');
+					}
+				} else {
+					$where = '';
+					$values = array();
+					$m = new $model;
+
+					foreach ($_GET as $key => $value) {
+						if (!in_array($key,array('apiuser','apikey'))) {
+							if ($m->hasAttribute($key)) {
+								if ($where) $where.= ' and ';
+								$where .= $key.' = ?';
+								$values[] = $value;
+							} else {
+								$this->error("$model model has no '$key' property.");
+							}
+						}
+					}
+
+					$results = array();
+					foreach ($model::model()->findAll($where,$values) as $result) {
+						$results[] = $this->to_array($result);
+					}
+					return $this->success($results);
+				}
+				exit;
+			case 'POST':
+			case 'PUT':
+			case 'DELETE':
+		}
+
+exit;
+
 		if (count($args) <1) {
 			$conditions = array();
 			foreach ($_GET as $key => $value) {
 				if (!in_array($key,array('apiuser','apikey'))) {
 					$conditions[$key] = $value;
 				}
-			}
-			if (empty($conditions)) {
-				$this->error('Missing parameter(s)');
 			}
 		}
 
@@ -150,7 +192,7 @@ class APIController extends BaseController
 				return $this->error($model.' not found');
 			}
 		} else if (isset($conditions)) {
-			/* Return a single object based on criteria */
+			/* Return objects based on criteria */
 
 			$where = '';
 			$values = array();
@@ -161,38 +203,14 @@ class APIController extends BaseController
 				$values[] = $value;
 			}
 
-			if ($obj = $model::model()->find($where,$values)) {
-				return $this->success($this->to_array($obj));
-			} else {
-				return $this->error($model.' not found');
+			$results = array();
+			foreach ($model::model()->findAll($where,$values) as $result) {
+				$results[] = $this->to_array($result);
 			}
+			return $this->success($results);
 		}
 
 		switch($args[0]) {
-			case 'list':
-				$objects = array();
-
-				$where = '';
-				$wherep = array();
-				foreach ($_GET as $key => $value) {
-					if (!in_array($key,array('apiuser','apikey'))) {
-						if ($model::model()->hasAttribute($key)) {
-							if ($where) {
-								$where .= ' and ';
-							}
-							$where .= "$key = ?";
-							$wherep[] = str_replace('%20',' ',$value);
-						} else {
-							$this->error("Unknown parameter for $model: $key");
-						}
-					}
-				}
-
-				foreach ($model::model()->findAll($where,$wherep,$params) as $obj) {
-					$objects[] = $this->to_array($obj);
-				}
-
-				return $this->success($objects);
 			case 'create':
 				foreach ($model::Model()->getRequiredFields() as $field) {
 					if (!isset($_POST[$field])) {

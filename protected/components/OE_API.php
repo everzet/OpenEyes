@@ -49,6 +49,7 @@ class OE_API {
 		} else {
 			curl_setopt($this->curl, CURLOPT_REFERER, null);
 		}
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
 		return curl_exec($this->curl);
 	}
 
@@ -76,6 +77,7 @@ class OE_API {
 			}
 			curl_setopt($this->curl, CURLOPT_POSTFIELDS, $postfields);
 		}
+
 		return curl_exec($this->curl);
 	}
 
