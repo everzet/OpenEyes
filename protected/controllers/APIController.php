@@ -150,7 +150,7 @@ class APIController extends BaseController
 				return $this->error($model.' not found');
 			}
 		} else if (isset($conditions)) {
-			/* Return a single user based on criteria */
+			/* Return a single object based on criteria */
 
 			$where = '';
 			$values = array();
