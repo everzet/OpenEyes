@@ -128,7 +128,15 @@ class APIController extends BaseController
 
 	public function api($model, $args) {
 		if (count($args) <1) {
-			$this->error('Missing parameter(s)');
+			$conditions = array();
+			foreach ($_GET as $key => $value) {
+				if (!in_array($key,array('apiuser','apikey'))) {
+					$conditions[$key] = $value;
+				}
+			}
+			if (empty($conditions)) {
+				$this->error('Missing parameter(s)');
+			}
 		}
 
 		$model = ucfirst($model);
@@ -137,6 +145,23 @@ class APIController extends BaseController
 			$id = $args[0];
 
 			if ($obj = $model::model()->findByPk($id)) {
+				return $this->success($this->to_array($obj));
+			} else {
+				return $this->error($model.' not found');
+			}
+		} else if (isset($conditions)) {
+			/* Return a single user based on criteria */
+
+			$where = '';
+			$values = array();
+
+			foreach ($conditions as $key => $value) {
+				if ($where) $where .= ' and ';
+				$where .= $key.' = ?';
+				$values[] = $value;
+			}
+
+			if ($obj = $model::model()->find($where,$values)) {
 				return $this->success($this->to_array($obj));
 			} else {
 				return $this->error($model.' not found');
@@ -178,7 +203,7 @@ class APIController extends BaseController
 				$obj = new $model;
 
 				foreach ($_POST as $key => $value) {
-					if ($obj->hasAttribute($key)) {
+					if ($key != 'id' && $obj->hasAttribute($key)) {
 						$obj->{$key} = $value;
 					} else {
 						$this->error("Invalid field: $key");
@@ -201,7 +226,7 @@ class APIController extends BaseController
 				}
 
 				foreach ($_POST as $key => $value) {
-					if ($obj->hasAttribute($key)) {
+					if ($key != 'id' && $obj->hasAttribute($key)) {
 						$munge_method = "munge{$model}".ucfirst($key);
 						if (method_exists($this,$munge_method)) {
 							$obj->{$key} = $this->{$munge_method}($value);
