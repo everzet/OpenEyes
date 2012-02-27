@@ -91,7 +91,11 @@ class OE_API {
 		
 		$url .= 'apiuser='.$this->user.'&apikey='.$this->apikey;
 
-		$resp = $this->get($url);
+		if ($post) {
+			$resp = $this->post($url, $post);
+		} else {
+			$resp = $this->get($url);
+		}
 
 		if (!$data = json_decode($resp,true)) {
 			die("Invalid response (not JSON): $resp\n");
