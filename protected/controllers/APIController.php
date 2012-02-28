@@ -68,7 +68,7 @@ class APIController extends BaseController
 			foreach (explode('&',$_SERVER['QUERY_STRING']) as $item) {
 				$key = preg_replace('/=.*$/','',$item);
 				$value = preg_replace('/^.*=/','',$item);
-				$_GET[$key] = $value;
+				$_GET[$key] = rawurldecode($value);
 			}
 		}
 
@@ -166,52 +166,6 @@ class APIController extends BaseController
 				}
 				exit;
 			case 'POST':
-			case 'PUT':
-			case 'DELETE':
-		}
-
-exit;
-
-		if (count($args) <1) {
-			$conditions = array();
-			foreach ($_GET as $key => $value) {
-				if (!in_array($key,array('apiuser','apikey'))) {
-					$conditions[$key] = $value;
-				}
-			}
-		}
-
-		$model = ucfirst($model);
-
-		if (ctype_digit($args[0])) {
-			$id = $args[0];
-
-			if ($obj = $model::model()->findByPk($id)) {
-				return $this->success($this->to_array($obj));
-			} else {
-				return $this->error($model.' not found');
-			}
-		} else if (isset($conditions)) {
-			/* Return objects based on criteria */
-
-			$where = '';
-			$values = array();
-
-			foreach ($conditions as $key => $value) {
-				if ($where) $where .= ' and ';
-				$where .= $key.' = ?';
-				$values[] = $value;
-			}
-
-			$results = array();
-			foreach ($model::model()->findAll($where,$values) as $result) {
-				$results[] = $this->to_array($result);
-			}
-			return $this->success($results);
-		}
-
-		switch($args[0]) {
-			case 'create':
 				foreach ($model::Model()->getRequiredFields() as $field) {
 					if (!isset($_POST[$field])) {
 						$this->error("Missing required field '$field'");
@@ -234,12 +188,12 @@ exit;
 
 				return $this->error("Failed to create $model object: ".print_r($obj->getErrors(),true));
 
-			case 'update':
-				if (!isset($args[1]) || !ctype_digit($args[1])) {
-					$this->error("Missing or $model ID");
+			case 'PUT':
+				if (!isset($object_id)) {
+					$this->error("Missing $model ID");
 				}
 
-				if (!$obj = $model::model()->findByPk((integer)$args[1])) {
+				if (!$obj = $model::model()->findByPk((integer)$object_id)) {
 					$this->error("$model not found");
 				}
 
@@ -260,14 +214,14 @@ exit;
 					return $this->success($model." updated");
 				}
 
-				return $this->error("Failed to update $model object {$args[1]}: ".print_r($obj->getErrors(),true));
+				return $this->error("Failed to update $model object $object_id: ".print_r($obj->getErrors(),true));
 
-			case 'delete':
-				if (!isset($args[1]) || !ctype_digit($args[1])) {
-					$this->error("Missing or $model ID");
+			case 'DELETE':
+				if (!isset($object_id)) {
+					$this->error("Missing $model ID");
 				}
 
-				if (!$obj = $model::model()->findByPk((integer)$args[1])) {
+				if (!$obj = $model::model()->findByPk((integer)$object_id)) {
 					$this->error("$model not found");
 				}
 
@@ -275,10 +229,10 @@ exit;
 					return $this->success($model." deleted");
 				}
 
-				return $this->error("Failed to delete $model object {$args[1]}: ".print_r($obj->getErrors(),true));
+				return $this->error("Failed to delete $model object $object_id: ".print_r($obj->getErrors(),true));
 
 			default:
-				$this->error("Unknown $model method '{$args[0]}'");
+				$this->error('Unknown request method.');
 		}
 	}
 }

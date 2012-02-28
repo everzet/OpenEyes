@@ -35,12 +35,10 @@ class OE_API {
 		}
 	}
 
-	function get($url,$referer=false) {
+	function curl_get($url,$referer=false) {
 		if ($this->debug) {
 			echo "GET: $url\n";
 		}
-
-		$url = str_replace(' ','%20',$url);
 
 		curl_setopt($this->curl, CURLOPT_URL, $url);
 		curl_setopt($this->curl, CURLOPT_POST, false);
@@ -49,16 +47,14 @@ class OE_API {
 		} else {
 			curl_setopt($this->curl, CURLOPT_REFERER, null);
 		}
-		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+
 		return curl_exec($this->curl);
 	}
 
-	function post($url, $post, $referer=false) {
+	private function curl_post($url, $post, $referer=false) {
 		if ($this->debug) {
 			echo "POST: $url\n";
 		}
-
-		$url = str_replace(' ','%20',$url);
 
 		curl_setopt($this->curl, CURLOPT_URL, $url);
 		curl_setopt($this->curl, CURLOPT_POST, true);
@@ -81,22 +77,38 @@ class OE_API {
 		return curl_exec($this->curl);
 	}
 
-	function call($uri, $post=false) {
-		$uri = preg_replace('/^\//','',$uri);
-		$url = 'http://'.$this->host.'/api/'.$uri;
+	private function sanitise_url($uri) {
+		if (preg_match('/\?/',$uri)) {
+			$url = 'http://'.$this->host.'/api/';
 
-		if (preg_match('/\?/',$url)) {
-			$url .= '&';
+			$args = preg_replace('/^.*\?/','',$uri);
+			$uri = preg_replace('/\?.*$/','',$uri);
+
+			$url = 'http://'.$this->host.'/api/'.$uri;
+
+			foreach (explode('&',$args) as $i => $arg) {
+				if ($i) {
+					$url .= '&';
+				} else {
+					$url .= '?';
+				}
+				$url .= preg_replace('/=.*$/','',$arg).'='.rawurlencode(preg_replace('/^.*=/','',$arg));
+			}
+			return $url.'&apiuser='.$this->user.'&apikey='.$this->apikey;
 		} else {
-			$url .= '?';
+			return 'http://'.$this->host.'/api/'.$uri.'?apiuser='.$this->user.'&apikey='.$this->apikey;
 		}
-		
-		$url .= 'apiuser='.$this->user.'&apikey='.$this->apikey;
+	}
+
+	private function call($uri, $post=false) {
+		$uri = preg_replace('/^\//','',$uri);
+
+		$url = $this->sanitise_url($uri);
 
 		if ($post) {
-			$resp = $this->post($url, $post);
+			$resp = $this->curl_post($url, $post);
 		} else {
-			$resp = $this->get($url);
+			$resp = $this->curl_get($url);
 		}
 
 		if (!$data = json_decode($resp,true)) {
@@ -104,6 +116,26 @@ class OE_API {
 		}
 
 		return $data;
+	}
+
+	function get($uri) {
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'GET');
+		return $this->call($uri);
+	}
+
+	function create($uri, $post) {
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'POST');
+		return $this->call($uri, $post);
+	}
+
+	function update($uri, $post) {
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+		return $this->call($uri, $post);
+	}
+
+	function delete($uri) {
+		curl_setopt($this->curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+		return $this->call($uri, $post);
 	}
 }
 ?>
