@@ -74,6 +74,9 @@ class APIController extends BaseController
 			}
 		}
 
+		unset($_GET['apiuser']);
+		unset($_GET['apikey']);
+
 		if (in_array($model,Yii::app()->params['api_allowed_models'])) {
 			$args = $this->getMethodArgs($model);
 
@@ -125,50 +128,59 @@ class APIController extends BaseController
 	public function api($model, $args) {
 		if (!empty($args)) {
 			$object_id = $args[0];
+		} else {
+			$object_id = false;
 		}
 
 		$model = ucfirst($model);
 
+		$obj = new $model;
+
+		$method = 'api_'.strtolower(@$_SERVER['REQUEST_METHOD']);
+
+		if (method_exists($obj,$method)) {
+			if ($obj->{$method}($object_id)) {
+				return $this->success($obj->api_result);
+			} else {
+				return $this->error($obj->api_result);
+			}
+		}
+
 		switch (@$_SERVER['REQUEST_METHOD']) {
 			case 'GET':
-				if (isset($object_id)) {
-					if ($obj = $model::model()->findByPk($object_id)) {
+				if ($object_id) {
+					if ($obj = $model::model()->findByPk((integer)$object_id)) {
 						return $this->success($obj->to_array());
 					} else {
 						return $this->error($model.' not found');
 					}
-				} else {
-					$where = '';
-					$values = array();
-					$m = new $model;
-
-					foreach ($_GET as $key => $value) {
-						if (!in_array($key,array('apiuser','apikey'))) {
-							if ($m->hasAttribute($key)) {
-								if ($where) $where.= ' and ';
-								$where .= $key.' = ?';
-								$values[] = $value;
-							} else {
-								$this->error("$model model has no '$key' property.");
-							}
-						}
-					}
-
-					$results = array();
-					foreach ($model::model()->findAll($where,$values) as $result) {
-						$results[] = $result->to_array();
-					}
-					return $this->success($results);
 				}
-				exit;
+
+				$where = '';
+				$values = array();
+
+				foreach ($_GET as $key => $value) {
+					if ($obj->hasAttribute($key)) {
+						if ($where) $where.= ' and ';
+						$where .= $key.' = ?';
+						$values[] = $value;
+					} else {
+						$this->error("$model model has no '$key' property.");
+					}
+				}
+
+				$results = array();
+				foreach ($model::model()->findAll($where,$values) as $result) {
+					$results[] = $result->to_array();
+				}
+				return $this->success($results);
+
 			case 'POST':
 				foreach ($model::Model()->getRequiredFields() as $field) {
 					if (!isset($_POST[$field])) {
 						$this->error("Missing required field '$field'");
 					}
 				}
-
-				$obj = new $model;
 
 				foreach ($_POST as $key => $value) {
 					if (in_array($key,array('id','last_modified_user_id','last_modified_date','created_user_id','created_date'))) {
@@ -187,7 +199,7 @@ class APIController extends BaseController
 				return $this->error("Failed to create $model object: ".print_r($obj->getErrors(),true));
 
 			case 'PUT':
-				if (!isset($object_id)) {
+				if (!$object_id) {
 					$this->error("Missing $model ID");
 				}
 
@@ -217,7 +229,7 @@ class APIController extends BaseController
 				return $this->error("Failed to update $model object $object_id: ".print_r($obj->getErrors(),true));
 
 			case 'DELETE':
-				if (!isset($object_id)) {
+				if (!$object_id) {
 					$this->error("Missing $model ID");
 				}
 
