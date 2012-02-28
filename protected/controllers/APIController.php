@@ -20,14 +20,6 @@ class APIController extends BaseController
 	 */
  
 	private $errors = array();
-	private $models = array(
-		'user',
-		'site',
-		'service',
-		'address',
-		'patient',
-		'country',
-	);
 
 	public function filters()
 	{
@@ -72,7 +64,7 @@ class APIController extends BaseController
 			}
 		}
 
-		if (in_array($model,$this->models)) {
+		if (in_array($model,Yii::app()->params['api_allowed_models'])) {
 			$args = $this->getMethodArgs($model);
 
 			return $this->api($model,$args);

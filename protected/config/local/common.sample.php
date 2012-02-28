@@ -89,6 +89,18 @@ return array(
 		'urgent_booking_notify_email' => array(
 			'alerts@example.com',
 		),
-		'urgent_booking_notify_email_from' => 'OpenEyes <helpdesk@example.com>'
+		'urgent_booking_notify_email_from' => 'OpenEyes <helpdesk@example.com>',
+		'apihost' => 'localhost',
+		'apiuser' => 'admin',
+		'apikey' => '',
+		'apidebug' => true,
+		'api_allowed_models' => array(
+			'user',
+			'site',
+			'service',
+			'address',
+			'patient',
+			'country',
+		)
 	),
 );
