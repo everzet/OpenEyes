@@ -122,16 +122,6 @@ class APIController extends BaseController
 		die(json_encode($data));
 	}
 
-	public function to_array($object) {
-		$data = array();
-
-		foreach ($object as $key => $value) {
-			$data[$key] = $value;
-		}
-
-		return $data;
-	}
-
 	public function api($model, $args) {
 		if (!empty($args)) {
 			$object_id = $args[0];
@@ -143,7 +133,7 @@ class APIController extends BaseController
 			case 'GET':
 				if (isset($object_id)) {
 					if ($obj = $model::model()->findByPk($object_id)) {
-						return $this->success($this->to_array($obj));
+						return $this->success($obj->to_array());
 					} else {
 						return $this->error($model.' not found');
 					}
@@ -166,7 +156,7 @@ class APIController extends BaseController
 
 					$results = array();
 					foreach ($model::model()->findAll($where,$values) as $result) {
-						$results[] = $this->to_array($result);
+						$results[] = $result->to_array();
 					}
 					return $this->success($results);
 				}
