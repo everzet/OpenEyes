@@ -46,9 +46,19 @@ class APIController extends BaseController
 		if (!isset($_REQUEST['apikey'])) {
 			$this->error('Missing API key');
 		}
-		if (!preg_match('/^[0-9a-f]{40}$/',$_REQUEST['apikey']) || !User::model()->find('username = :username and api_key = :api_key',array(':username'=>$_REQUEST['apiuser'],':api_key'=>$_REQUEST['apikey']))) {
+
+		$user = User::model()->find('username = :username and api_key = :api_key',array(':username'=>$_REQUEST['apiuser'],':api_key'=>$_REQUEST['apikey']));
+
+		if (!preg_match('/^[0-9a-f]{40}$/',$_REQUEST['apikey']) || !$user) {
 			$this->error('Authentication failed');
 		}
+
+		$identity = new UserIdentity($user->username, '');
+		if (!$identity->authenticate_api()) {
+			$this->error('Authentication failed');
+		}
+
+		Yii::app()->user->login($identity,0);
 	}
 
 	public function missingAction($model) {
@@ -105,6 +115,10 @@ class APIController extends BaseController
 	}
 
 	public function send($data) {
+		$user = Yii::app()->session['user'];
+		OELog::log("[API] User $user->username logged out");
+		Yii::app()->user->logout();
+
 		die(json_encode($data));
 	}
 

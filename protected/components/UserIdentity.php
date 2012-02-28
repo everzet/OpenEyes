@@ -8,7 +8,7 @@ OpenEyes is free software: you can redistribute it and/or modify it under the te
 OpenEyes is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with OpenEyes in a file titled COPYING. If not, see <http://www.gnu.org/licenses/>.
 _____________________________________________________________________________
-http://www.openeyes.org.uk   info@openeyes.org.uk
+http://www.openeyes.org.uk	 info@openeyes.org.uk
 --
 */
 
@@ -176,6 +176,83 @@ class UserIdentity extends CUserIdentity
 		}
 
 		natcasesort($firms);
+
+		$app->session['user'] = $user;
+		$app->session['firms'] = $firms;
+
+		reset($firms);
+
+		if ($user->last_firm_id) {
+			$app->session['selected_firm_id'] = $user->last_firm_id;
+		} else if (count($user->firms)) {
+			// Set the firm to one the user is associated with
+			$userFirms = $user->firms;
+			$app->session['selected_firm_id'] = $userFirms[0]->id;
+		} else {
+			// The user doesn't have firms of their own to select from so we select
+			//	one arbitrarily
+			$app->session['selected_firm_id'] = key($firms);
+		}
+
+		OELog::log("User {$this->username} logged in",$this->username);
+
+		return true;
+	}
+
+	public function authenticate_api() {
+		$user = User::model()->find('username = ?', array($this->username));
+
+		if($user === null) {
+			OELog::log("[API] User not found in local database: $this->username");
+			$this->errorCode = self::ERROR_USERNAME_INVALID;
+			return false;
+		} else if($user->active != 1) {
+			OELog::log("[API] User not active and so cannot login: $this->username");
+			$this->errorCode = self::ERROR_USER_INACTIVE;
+			return false;
+		}
+
+		$this->_id = $user->id;
+		$this->username = $user->username;
+		$this->errorCode = self::ERROR_NONE;
+
+		// Get all the user's firms and put them in a session
+		$app = Yii::app();
+
+		$firms = array();
+
+		if ($user->global_firm_rights) {
+			foreach(Firm::model()->findAll() as $firm) {
+				$firms[$firm->id] = $this->firmString($firm);
+			}
+		} else {
+			// Gets the firms the user is associated with
+			foreach ($user->firms as $firm) {
+				$firms[$firm->id] = $this->firmString($firm);
+			}
+
+			// Get arbitrarily selected firms
+			foreach ($user->firmRights as $firm) {
+				$firms[$firm->id] = $this->firmString($firm);
+			}
+
+			// Get firms associated with services
+			foreach ($user->serviceRights as $service) {
+				foreach ($service->serviceSpecialtyAssignments as $ssa) {
+					foreach (Firm::model()->findAll(
+						'service_specialty_assignment_id = ?', array(
+							$ssa->id
+						)
+					) as $firm) {
+						$firms[$firm->id] = $this->firmString($firm);
+					}
+				}
+			}
+		}
+
+		if (!empty($firms)) {
+			natcasesort($firms);
+		}
 
 		$app->session['user'] = $user;
 		$app->session['firms'] = $firms;
