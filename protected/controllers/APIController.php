@@ -167,10 +167,12 @@ class APIController extends BaseController
 				$obj = new $model;
 
 				foreach ($_POST as $key => $value) {
-					if ($key != 'id' && $obj->hasAttribute($key)) {
-						$obj->{$key} = $value;
+					if (in_array($key,array('id','last_modified_user_id','last_modified_date','created_user_id','created_date'))) {
+						$this->error("$model property '$key' cannot be set using the API.");
+					} else if (!$obj->hasAttribute($key)) {
+						$this->error("$model property '$key' does not exist.");
 					} else {
-						$this->error("Invalid field: $key");
+						$obj->{$key} = $value;
 					}
 				}
 
@@ -190,15 +192,17 @@ class APIController extends BaseController
 				}
 
 				foreach ($_POST as $key => $value) {
-					if ($key != 'id' && $obj->hasAttribute($key)) {
+					if (in_array($key,array('id','last_modified_user_id','last_modified_date','created_user_id','created_date'))) {
+						$this->error("$model property '$key' cannot be set using the API.");
+					} else if (!$obj->hasAttribute($key)) {
+						$this->error("$model property '$key' does not exist.");
+					} else {
 						$munge_method = "munge{$model}".ucfirst($key);
 						if (method_exists($this,$munge_method)) {
 							$obj->{$key} = $this->{$munge_method}($value);
 						} else {
 							$obj->{$key} = $value;
 						}
-					} else {
-						$this->error("Invalid field: $key");
 					}
 				}
 
