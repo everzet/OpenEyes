@@ -77,6 +77,10 @@ class APIController extends BaseController
 		unset($_GET['apiuser']);
 		unset($_GET['apikey']);
 
+		if (!Yii::app()->params['api_allowed_models'] || !is_array(Yii::app()->params['api_allowed_models'])) {
+			$this->error("params['api_allowed_models'] is not defined. Please see the API documentation to resolve this issue.");
+		}
+
 		if (in_array($model,Yii::app()->params['api_allowed_models'])) {
 			$args = $this->getMethodArgs($model);
 
