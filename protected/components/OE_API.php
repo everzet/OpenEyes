@@ -17,10 +17,9 @@
  */
 class OE_API {
 	/* These are only used if running outside of the Yii framework */
-	public $host = 'localhost';
-	public $user = 'admin';
+	public $apihost = 'localhost';
+	public $apiuser = 'admin';
 	public $apikey = '';
-	public $debug = false;
 
 	function __construct() {
 		$this->curl = curl_init();
@@ -28,18 +27,13 @@ class OE_API {
 		curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, true);
 
 		if (class_exists('Yii')) {
-			$this->host = Yii::app()->params['apihost'];
-			$this->user = Yii::app()->params['apiuser'];
+			$this->apihost = Yii::app()->params['apihost'];
+			$this->apiuser = Yii::app()->params['apiuser'];
 			$this->apikey = Yii::app()->params['apikey'];
-			$this->debug = Yii::app()->params['apidebug'];
 		}
 	}
 
 	function curl_get($url,$referer=false) {
-		if ($this->debug) {
-			echo "GET: $url\n";
-		}
-
 		curl_setopt($this->curl, CURLOPT_URL, $url);
 		curl_setopt($this->curl, CURLOPT_POST, false);
 		if ($referer) {
@@ -52,10 +46,6 @@ class OE_API {
 	}
 
 	private function curl_post($url, $post, $referer=false) {
-		if ($this->debug) {
-			echo "POST: $url\n";
-		}
-
 		curl_setopt($this->curl, CURLOPT_URL, $url);
 		curl_setopt($this->curl, CURLOPT_POST, true);
 		if ($referer) {
@@ -79,12 +69,12 @@ class OE_API {
 
 	private function sanitise_url($uri) {
 		if (preg_match('/\?/',$uri)) {
-			$url = 'http://'.$this->host.'/api/';
+			$url = 'http://'.$this->apihost.'/api/';
 
 			$args = preg_replace('/^.*\?/','',$uri);
 			$uri = preg_replace('/\?.*$/','',$uri);
 
-			$url = 'http://'.$this->host.'/api/'.$uri;
+			$url = 'http://'.$this->apihost.'/api/'.$uri;
 
 			foreach (explode('&',$args) as $i => $arg) {
 				if ($i) {
@@ -94,9 +84,9 @@ class OE_API {
 				}
 				$url .= preg_replace('/=.*$/','',$arg).'='.rawurlencode(preg_replace('/^.*=/','',$arg));
 			}
-			return $url.'&apiuser='.$this->user.'&apikey='.$this->apikey;
+			return $url.'&apiuser='.$this->apiuser.'&apikey='.$this->apikey;
 		} else {
-			return 'http://'.$this->host.'/api/'.$uri.'?apiuser='.$this->user.'&apikey='.$this->apikey;
+			return 'http://'.$this->apihost.'/api/'.$uri.'?apiuser='.$this->apiuser.'&apikey='.$this->apikey;
 		}
 	}
 
