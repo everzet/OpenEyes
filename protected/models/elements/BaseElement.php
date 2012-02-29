@@ -20,7 +20,7 @@
 /**
  * A class that all clinical elements should extend from.
  */
-class BaseElement extends BaseActiveRecord
+abstract class BaseElement extends BaseActiveRecord
 {
 	public $firm;
 	public $userId;

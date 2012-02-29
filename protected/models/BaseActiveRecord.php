@@ -23,8 +23,7 @@
  * Currently its only purpose is to remove all html tags to
  * prevent XSS.
  */
-class BaseActiveRecord extends CActiveRecord
-{
+abstract class BaseActiveRecord extends CActiveRecord implements AuthorisationProvider {
 
 	/**
 	 * How long (in seconds) before cached PAS details are considered stale
@@ -35,15 +34,13 @@ class BaseActiveRecord extends CActiveRecord
 	 * Audit log
 	 */
 	public function behaviors() {
+		$behaviors = array();
 		if(Yii::app()->params['audit_trail']) {
-			return array(
-				'LoggableBehavior' => array(
-					'class' => 'application.behaviors.LoggableBehavior',
-				),
+			$behaviors['LoggableBehavior'] = array(
+				'class' => 'application.behaviors.LoggableBehavior',
 			);
-		} else {
-			return array();
 		}
+		return $behaviors;
 	}
 	
 	/**
@@ -59,6 +56,85 @@ class BaseActiveRecord extends CActiveRecord
 			}
 		}
 		return parent::beforeSave();
+	}
+	
+	/**
+	 * Authorisation name
+	 * @return string
+	 */
+	public static function get_auth_name() {
+		return __CLASS__;
+	}
+	
+	/**
+	 * Defined Operation items
+	 * @return array
+	 */
+	public static function defined_operations() {
+		return array(
+			'OprnView'.self::get_auth_name() => 'View '.self::get_auth_name(),
+			'OprnEdit'.self::get_auth_name() => 'Edit '.self::get_auth_name(),
+			'OprnDelete'.self::get_auth_name() => 'Delete '.self::get_auth_name(),
+		);
+	}
+	
+	/**
+	 * Defined Task items
+	 * @return array
+	 */
+	public static function defined_tasks() {
+		return array();
+	}
+	
+	/**
+	 * Is user authorised to view record
+	 * @param integer $user User ID
+	 * @return boolean
+	 */
+	public function canView($user_id = null) {
+		if(is_integer($user_id)) {
+			$user = User::model()->findByPk($user_id);
+			if(!$user) {
+				throw CException('Invalid user ID:'.$user_id);
+			}
+		} else {
+			$user = Yii::app()->user;
+		}
+		return $user->checkAccess('OprnView'.self::get_auth_name());
+	}
+	
+	/**
+	 * Is user authorised to edit record
+	 * @param integer $user User ID
+	 * @return boolean
+	 */
+	public function canEdit($user_id = null) {
+		if(is_integer($user_id)) {
+			$user = User::model()->findByPk($user_id);
+			if(!$user) {
+				throw CException('Invalid user ID:'.$user_id);
+			}
+		} else {
+			$user = Yii::app()->user;
+		}
+		return $user->checkAccess('OprnView'.self::get_auth_name());
+	}
+	
+	/**
+	 * Is user authorised to delete record
+	 * @param integer $user User ID
+	 * @return boolean
+	 */
+	public function canDelete($user_id = null) {
+		if(is_integer($user_id)) {
+			$user = User::model()->findByPk($user_id);
+			if(!$user) {
+				throw CException('Invalid user ID:'.$user_id);
+			}
+		} else {
+			$user = Yii::app()->user;
+		}
+		return $user->checkAccess('OprnView'.self::get_auth_name());
 	}
 	
 	/**
