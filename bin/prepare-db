@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mysqladmin -u root create openeyes
+php protected/yiic.php migrate

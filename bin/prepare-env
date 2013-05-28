@@ -1,0 +1,19 @@
+#!/bin/sh
+
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+if [ ! -d $ROOT/protected/runtime ]; then
+    mkdir -p $ROOT/protected/runtime
+fi
+
+if [ ! -f $ROOT/protected/config/local/common.php ]; then
+    cp $ROOT/protected/config/local/common.sample.php $ROOT/protected/config/local/common.php
+fi
+
+if [ ! -f $ROOT/index.php ]; then
+    cp $ROOT/index.sample.php $ROOT/index.php
+fi
+
+if [ ! -f $ROOT/.htaccess ]; then
+    cp $ROOT/.htaccess.sample $ROOT/.htaccess
+fi
