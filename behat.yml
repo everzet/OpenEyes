@@ -4,8 +4,12 @@ default:
             param: value
 
     extensions:
+        Behat\YiiExtension\Extension:
+            framework_script: protected/yii/framework/yii.php
+            config_script:    protected/config/main.php
+
         Behat\MinkExtension\Extension:
-            base_url:         'http://localhost:8888'
+            base_url:         http://localhost:8888
             default_session:  selenium2
             selenium2:        ~
 

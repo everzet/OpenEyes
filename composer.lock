@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "aef97badb46acb353dd6b124880cecd3",
+    "hash": "cd42a36968f9ae1f96e3db4147cb0735",
     "packages": [
 
     ],
@@ -405,6 +405,50 @@
                 "webdriver"
             ],
             "time": "2013-04-13 23:51:01"
+        },
+        {
+            "name": "behat/yii-extension",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Behat/YiiExtension.git",
+                "reference": "v1.0.0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Behat/YiiExtension/zipball/v1.0.0",
+                "reference": "v1.0.0",
+                "shasum": ""
+            },
+            "require": {
+                "behat/behat": ">=2.4.0,<2.4.x-dev",
+                "php": ">=5.3.2"
+            },
+            "type": "behat-extension",
+            "autoload": {
+                "psr-0": {
+                    "Behat\\YiiExtension": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Konstantin Kudryashov",
+                    "email": "ever.zet@gmail.com",
+                    "homepage": "http://everzet.com"
+                }
+            ],
+            "description": "Yii framework extension for Behat",
+            "homepage": "http://mink.behat.org",
+            "keywords": [
+                "BDD",
+                "framework",
+                "web"
+            ],
+            "time": "2013-02-25 14:12:45"
         },
         {
             "name": "fabpot/goutte",

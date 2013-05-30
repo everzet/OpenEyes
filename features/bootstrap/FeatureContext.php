@@ -9,12 +9,20 @@ use Behat\Gherkin\Node\PyStringNode,
 
 use Behat\MinkExtension\Context\MinkContext;
 
-class FeatureContext extends MinkContext
+use Behat\YiiExtension\Context\YiiAwareContextInterface;
+
+class FeatureContext extends MinkContext implements YiiAwareContextInterface
 {
+    private $yii;
     private $parameters;
 
     public function __construct(array $parameters)
     {
         $this->parameters = $parameters;
+    }
+
+    public function setYiiWebApplication(\CWebApplication $yii)
+    {
+        $this->yii = $yii;
     }
 }
