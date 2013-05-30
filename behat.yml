@@ -1,13 +1,24 @@
 default:
-  extensions:
-    Behat\MinkExtension\Extension:
-      base_url: 'http://localhost'
-      default_session: selenium2
-      javascript_session: selenium2
-      browser_name: 'chrome'
-      selenium2:
-        capabilities:
-          browser: chrome
-          browserVersion: 23
-          version: "23"
-          platform: MAC
+    context:
+        parameters:
+            param: value
+
+    extensions:
+        Behat\MinkExtension\Extension:
+            base_url:         'http://localhost:8888'
+            default_session:  selenium2
+            selenium2:        ~
+
+#           selenium2:
+#               browser: 'internet explorer'
+#               wd_host: USER:TOKEN@ondemand.saucelabs.com/wd/hub
+#               capabilities:
+#                   platform: 'Windows 8'
+#                   version:  '10'
+
+#           selenium2:
+#               capabilities:
+#                   browser:         chrome
+#                   browserVersion:  23
+#                   version:         "23"
+#                   platform:        MAC
