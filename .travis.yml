@@ -9,11 +9,11 @@ addons:
 
 env: 
   global: 
-    - secure: |-
+  - secure: |-
       vFa/kA3Xhy6VVmQTMT6+uuT10ggdfX6wJrAlZjHsyXPkB89rV5fudL11yN69
       CPb9DvbESgq7+cteAA8ArvUBWNvod51Rsb8JDcEWqJoS/qc7ygXUtUfpFQts
       UURwbK/4V1WtMWIduniFWjQ8xE+zq0PzgfOY4gKiQOX5CA/DGno=
-    - secure: |-
+  - secure: |-
       iuFJkjM/awM3SzPFKJDsSvpON6Ngj2T//KGBNetqqacquNrOTAgwoxtXkkye
       1AOzPru9eQ+pS7trHLtJlRzfcjgVThJFlDofR/7nLYX0KWmsbbWQI9QwJTH3
       np0t9tkK+0BWezKIxTVjZwnr5XGBB952BYEDIlzrt2tICjkl6/M=
