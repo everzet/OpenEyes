@@ -28,5 +28,6 @@ before_script:
 
   - mysql -e 'create database openeyes;'
   - cp protected/config/local/common.sample.php protected/config/local/common.php
+  - mkdir protected/runtime && chmod 0777 protected/runtime
  
   - vendor/bin/behat -c behat.travis.yml
