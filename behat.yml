@@ -1,7 +1,6 @@
 default:
     context:
-        parameters:
-            param: value
+        parameters: []
 
     extensions:
         features/bootstrap/extension.php: ~
@@ -12,6 +11,5 @@ default:
 
         Behat\MinkExtension\Extension:
             base_url:         http://localhost:8888
-            default_session:  selenium2
-
             selenium2:        ~
+            default_session:  selenium2
