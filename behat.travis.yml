@@ -1,0 +1,14 @@
+imports:
+    - behat.yml
+
+default:
+    extensions:
+        Behat\MinkExtension\Extension:
+            base_url: http://127.0.0.1
+
+            selenium2:
+                browser: 'internet explorer'
+                wd_host: %saucelabs.username%:%saucelabs.access_key%@ondemand.saucelabs.com/wd/hub
+                capabilities:
+                    platform: 'Windows 8'
+                    version:  '10'

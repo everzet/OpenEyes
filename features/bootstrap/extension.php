@@ -11,6 +11,14 @@ use Symfony\Component\Finder\Finder;
 
 class OpenEyesExtension extends Extension
 {
+    public function load(array $config, ContainerBuilder $container)
+    {
+        parent::load($config, $container);
+
+        $container->setParameter('saucelabs.username', ''.getenv('SAUCE_USERNAME'));
+        $container->setParameter('saucelabs.access_key', ''.getenv('SAUCE_ACCESS_KEY'));
+    }
+
     protected function getServiceDefinitionsName()
     {
         return 'extension';

@@ -1,0 +1,32 @@
+language: php
+
+php:
+  - 5.3
+  - 5.4
+
+addons:
+  sauce_connect: true
+
+env: 
+  global: 
+    - secure: |-
+      vFa/kA3Xhy6VVmQTMT6+uuT10ggdfX6wJrAlZjHsyXPkB89rV5fudL11yN69
+      CPb9DvbESgq7+cteAA8ArvUBWNvod51Rsb8JDcEWqJoS/qc7ygXUtUfpFQts
+      UURwbK/4V1WtMWIduniFWjQ8xE+zq0PzgfOY4gKiQOX5CA/DGno=
+    - secure: |-
+      iuFJkjM/awM3SzPFKJDsSvpON6Ngj2T//KGBNetqqacquNrOTAgwoxtXkkye
+      1AOzPru9eQ+pS7trHLtJlRzfcjgVThJFlDofR/7nLYX0KWmsbbWQI9QwJTH3
+      np0t9tkK+0BWezKIxTVjZwnr5XGBB952BYEDIlzrt2tICjkl6/M=
+
+before_script:
+  - curl http://getcomposer.org/installer | php
+  - php composer.phar install --dev --prefer-source
+
+  - sudo apt-get update && sudo apt-get install -y --force-yes apache2 libapache2-mod-php5
+  - sudo sed -i -e "s,/var/www,$(pwd),g" /etc/apache2/sites-available/default
+  - sudo /etc/init.d/apache2 restart
+
+  - mysql -e 'create database openeyes;'
+  - cp protected/config/local/common.sample.php protected/config/local/common.php
+ 
+  - vendor/bin/behat -c behat.travis.yml
