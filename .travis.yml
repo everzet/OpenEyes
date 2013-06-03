@@ -32,18 +32,12 @@ before_script:
   - echo -e "[mysqld]\nlower_case_table_names = 1" > lowercase_tables.cnf
   - sudo mv lowercase_tables.cnf /etc/mysql/conf.d/
   - sudo /etc/init.d/mysql restart
-  - mysql -e 'create database openeyes;'
 
   # Composer
   - curl http://getcomposer.org/installer | php
   - php composer.phar install --dev --prefer-source
 
   # Application
-  - mkdir protected/runtime
-  - chmod -R 0777 protected/runtime assets
-  - cp protected/config/local/common.sample.php protected/config/local/common.php
-  - php protected/yiic.php migrate --interactive=0
-  - cp index.example.php index.php
-  - cp .htaccess.sample .htaccess
+  - bin/setup
  
 script: vendor/bin/behat -p travis
