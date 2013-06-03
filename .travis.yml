@@ -46,4 +46,4 @@ before_script:
   - cp index.example.php index.php
   - cp .htaccess.sample .htaccess
  
-script: vendor/bin/behat -c behat.travis.yml
+script: vendor/bin/behat -p travis

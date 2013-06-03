@@ -13,3 +13,18 @@ default:
             base_url:         http://localhost:8888
             selenium2:        ~
             default_session:  selenium2
+
+travis:
+    extensions:
+        Behat\MinkExtension\Extension:
+            base_url:           http://localhost
+            default_session:    saucelabs
+            javascript_session: saucelabs
+
+            saucelabs:
+                connect:  true
+                travis:   true
+                browser:  'firefox'
+                capabilities:
+                    version:  '21'
+                    platform: 'Windows 8'
