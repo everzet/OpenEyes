@@ -26,12 +26,14 @@ before_script:
   - sudo a2enmod rewrite
   - sudo sed -i -e "s,/var/www,$(pwd),g" /etc/apache2/sites-available/default
   - sudo /etc/init.d/apache2 restart
+  - cp index.example.php index.php
+  - cp .htaccess.sample .htaccess
 
   - mkdir protected/runtime && chmod 0777 protected/runtime
-  - mysql -e 'create database openeyes;'
   - cp protected/config/local/common.sample.php protected/config/local/common.php
-  - cp .htaccess.sample .htaccess
-  - cp index.example.php index.php
+
+  - mysql -e 'set lower_case_table_names = 1;'
+  - mysql -e 'create database openeyes;'
   - php protected/yiic.php migrate --interactive=0
  
   - vendor/bin/behat -c behat.travis.yml
