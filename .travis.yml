@@ -19,13 +19,13 @@ env:
       np0t9tkK+0BWezKIxTVjZwnr5XGBB952BYEDIlzrt2tICjkl6/M=
 
 before_script:
-  - curl http://getcomposer.org/installer | php
-  - php composer.phar install --dev --prefer-source
 
   # Apache + PHP
-  - sudo apt-get update && sudo apt-get install -y --force-yes apache2 libapache2-mod-php5 php5-mysql
+  - sudo apt-get update
+  - sudo apt-get install -y --force-yes apache2 libapache2-mod-php5 php5-mysql
   - sudo a2enmod rewrite
   - sudo sed -i -e "s,/var/www,$(pwd),g" /etc/apache2/sites-available/default
+  - sudo sed -i -e "s,AllowOverride None,AllowOverride All,g" /etc/apache2/sites-available/default
   - sudo /etc/init.d/apache2 restart
 
   # MySQL
@@ -33,6 +33,10 @@ before_script:
   - sudo mv lowercase_tables.cnf /etc/mysql/conf.d/
   - sudo /etc/init.d/mysql restart
   - mysql -e 'create database openeyes;'
+
+  # Composer
+  - curl http://getcomposer.org/installer | php
+  - php composer.phar install --dev --prefer-source
 
   # Application
   - mkdir protected/runtime && chmod 0777 protected/runtime
