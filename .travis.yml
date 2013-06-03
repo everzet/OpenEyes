@@ -40,4 +40,4 @@ before_script:
   # Application
   - bin/setup
  
-script: vendor/bin/behat -p travis
+script: vendor/bin/behat -p ci
