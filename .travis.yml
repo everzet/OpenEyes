@@ -32,7 +32,7 @@ before_script:
   - mkdir protected/runtime && chmod 0777 protected/runtime
   - cp protected/config/local/common.sample.php protected/config/local/common.php
 
-  - echo -e "[mysqld]\nlower_case_table_names = 1" > /etc/mysql/conf.d/lowercase_tables.cnf
+  - sudo echo -e "[mysqld]\nlower_case_table_names = 1" > /etc/mysql/conf.d/lowercase_tables.cnf
   - sudo /etc/init.d/mysqld restart
   - mysql -e 'create database openeyes;'
   - php protected/yiic.php migrate --interactive=0
