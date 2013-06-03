@@ -23,7 +23,7 @@ before_script:
   - php composer.phar install --dev --prefer-source
 
   # Apache + PHP
-  - sudo apt-get update && sudo apt-get install -y --force-yes apache2 libapache2-mod-php5
+  - sudo apt-get update && sudo apt-get install -y --force-yes apache2 libapache2-mod-php5 php5-mysql
   - sudo a2enmod rewrite
   - sudo sed -i -e "s,/var/www,$(pwd),g" /etc/apache2/sites-available/default
   - sudo /etc/init.d/apache2 restart
