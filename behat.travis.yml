@@ -11,7 +11,7 @@ default:
             saucelabs:
                 connect:  true
                 travis:   true
-                browser:  'internet explorer'
+                browser:  'firefox'
                 capabilities:
-                    version:  '10'
+                    version:  '21'
                     platform: 'Windows 8'
