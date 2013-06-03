@@ -26,9 +26,9 @@ before_script:
   - sudo sed -i -e "s,/var/www,$(pwd),g" /etc/apache2/sites-available/default
   - sudo /etc/init.d/apache2 restart
 
+  - mkdir protected/runtime && chmod 0777 protected/runtime
   - mysql -e 'create database openeyes;'
   - cp protected/config/local/common.sample.php protected/config/local/common.php
   - php protected/yiic.php migrate
-  - mkdir protected/runtime && chmod 0777 protected/runtime
  
   - vendor/bin/behat -c behat.travis.yml
