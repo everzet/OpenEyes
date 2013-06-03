@@ -10,21 +10,25 @@ default:
             config_script:    protected/config/main.php
 
         Behat\MinkExtension\Extension:
-            base_url:         http://localhost:8888
-            selenium2:        ~
-            default_session:  selenium2
+            base_url:           http://localhost:8888
+            javascript_session: saucelabs
+            goutte:             ~
+            saucelabs:
+                connect:  true
+                browser:  'chrome'
+                capabilities:
+                    version:  ''
+                    platform: 'Windows 7'
+
+sauce:
+    extensions:
+        Behat\MinkExtension\Extension:
+            default_session: saucelabs
 
 travis:
     extensions:
         Behat\MinkExtension\Extension:
-            base_url:           http://localhost
-            default_session:    saucelabs
-            javascript_session: saucelabs
-
+            base_url:        http://localhost
+            default_session: saucelabs
             saucelabs:
-                connect:  true
-                travis:   true
-                browser:  'firefox'
-                capabilities:
-                    version:  '21'
-                    platform: 'Windows 8'
+                travis: true
