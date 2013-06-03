@@ -13,7 +13,7 @@ if [ ! -f protected/config/local/common.php ]; then
 fi
 
 if [ ! -f index.php ]; then
-    cp index.sample.php index.php
+    cp index.example.php index.php
 fi
 
 if [ ! -f .htaccess ]; then
