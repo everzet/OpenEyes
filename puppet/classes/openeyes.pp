@@ -19,6 +19,10 @@ class openeyes {
     source => '/var/www/index.example.php'
   }
 
+  file { '/var/www/index.html':
+    ensure => absent,
+  }
+
   file { '/var/www/.htaccess':
     ensure => file,
     source => '/var/www/.htaccess.sample'
@@ -35,6 +39,7 @@ class openeyes {
     require => [
       Exec['create-openeyes-db'],
       File['/var/www/protected/config/local/common.php'],
+      File['/var/www/protected/runtime'],
     ]
   }
 }
