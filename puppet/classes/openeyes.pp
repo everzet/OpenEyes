@@ -32,6 +32,9 @@ class openeyes {
 
   exec { 'migrate-openeyes-db':
     command => '/usr/bin/php /var/www/protected/yiic.php migrate --interactive=0',
-    require => Exec['create-openeyes-db'],
+    require => [
+      require => Exec['create-openeyes-db'],
+      require => File['/var/www/protected/config/local/common.php'],
+    ]
   }
 }
