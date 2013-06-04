@@ -38,6 +38,12 @@ before_script:
   - php composer.phar install --dev --prefer-source
 
   # Application
-  - bin/setup
+  - mkdir -p protected/runtime
+  - chmod -R 0777 protected/runtime assets
+  - cp protected/config/local/common.sample.php protected/config/local/common.php
+  - cp index.example.php index.php
+  - cp .htaccess.sample .htaccess
+  - mysql -e 'create database openeyes;'
+  - php protected/yiic.php migrate --interactive=0
  
 script: vendor/bin/behat -p ci

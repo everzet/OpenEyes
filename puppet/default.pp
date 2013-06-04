@@ -8,6 +8,7 @@ class amp {
   include apache2
   include mysql
   include php5
+  include openeyes
 }
 
 include amp
